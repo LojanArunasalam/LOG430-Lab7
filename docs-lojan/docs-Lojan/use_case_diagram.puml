@@ -1,0 +1,101 @@
+@startuml
+title Diagramme de cas d'utilisation - OpenProject
+left to right direction
+actor Utilisateur
+actor "Chef de projet" as ChefProjet
+actor Administrateur
+
+rectangle OpenProject {
+
+    rectangle "Gestion de portfolio" { 
+        ' Portfolio Management
+        usecase "UC-PM1 - Accéder à la liste des projets" as UC_PM1
+        usecase "UC-PM2 - Filtrer et trier les projets" as UC_PM2
+        usecase "UC-PM3 - Afficher projets en Gantt" as UC_PM3
+        usecase "UC-PM4 - Exporter rapports de projet" as UC_PM4
+        usecase "UC-PM5 - Rapport d'état du projet" as UC_PM5
+
+    }
+    rectangle "Gestion de ressources" {
+        ' Resource Management
+        usecase "UC-RM1 - Afficher work package view" as UC_RM1
+        usecase "UC-RM1 - Ajouter des sommes à la vue" as UC_RM2
+        usecase "UC-RM1 - Afficher Gantt chart view" as UC_RM3
+
+    }
+
+    rectangle "SAFe" {
+        ' SAFe 
+        usecase "Configurer Agile Release Trains" as UC_SAFe1
+        usecase "Définir Program Increments" as UC_SAFe2
+        usecase "Gérer epics, features, stories" as UC_SAFe3
+        usecase "Organiser travail (table, Gantt)" as UC_SAFe4
+        usecase "Gérer backlogs, Kanban, Team Planner" as UC_SAFe5
+    }
+
+    rectangle "Gestion des tests" {
+        ' Test Management
+        usecase "Automatiser tests avec GitHub/Gitlab" as UC_TM1
+        usecase "Créer un plan de test" as UC_TM2
+        usecase "Configurer la gestion des tests" as UC_TM3
+    }
+    
+    usecase "UC1 - Consulter projet" as UC1
+    usecase "UC2 - Consulter tâches" as UC2
+    usecase "UC3 - Soumettre un rapport" as UC3
+    usecase "UC4 - Créer projet" as UC4
+    usecase "UC5 - Gérer tâches" as UC5
+    usecase "UC6 - Gérer ressources" as UC6
+    usecase "UC7 - Gérer portefeuille" as UC7 
+    usecase "UC8 - Générer rapports" as UC8 
+    usecase "UC9 - Gérer tests" as UC9
+    usecase "UC10 - Gérer utilisateurs" as UC10
+    usecase "UC11 - Configurer système" as UC11
+    
+}
+
+Utilisateur --> UC1 
+Utilisateur --> UC2
+Utilisateur --> UC3
+Utilisateur --> UC_PM1
+Utilisateur --> UC_PM2
+Utilisateur --> UC_PM3
+Utilisateur --> UC_PM4
+Utilisateur --> UC_PM5
+Utilisateur --> UC_RM1
+Utilisateur --> UC_RM2
+Utilisateur --> UC_RM3
+Utilisateur --> UC_SAFe4
+Utilisateur --> UC_SAFe5
+Utilisateur --> UC_TM2
+
+ChefProjet --> UC4
+ChefProjet --> UC5
+ChefProjet --> UC6
+ChefProjet --> UC7
+ChefProjet --> UC8
+ChefProjet --> UC9
+ChefProjet --> UC_PM1
+ChefProjet --> UC_PM2
+ChefProjet --> UC_PM3
+ChefProjet --> UC_PM4
+ChefProjet --> UC_PM5
+ChefProjet --> UC_RM1
+ChefProjet --> UC_RM2
+ChefProjet --> UC_RM3
+ChefProjet --> UC_SAFe1
+ChefProjet --> UC_SAFe2
+ChefProjet --> UC_SAFe3
+ChefProjet --> UC_SAFe4
+ChefProjet --> UC_SAFe5
+ChefProjet --> UC_TM1
+ChefProjet --> UC_TM2
+ChefProjet --> UC_TM3
+
+Administrateur --> UC10
+Administrateur --> UC11
+Administrateur --> UC_SAFe1
+Administrateur --> UC_SAFe2
+Administrateur --> UC_TM3
+
+@enduml

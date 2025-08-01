@@ -1,0 +1,71 @@
+_format_version: "3.0"
+
+# Plugin CORS global
+plugins:
+  - name: cors
+    config:
+      origins:
+        - "*"  # Permet toutes les origines (à ajuster en production)
+      methods:
+        - GET
+        - POST
+        - PUT
+        - DELETE
+        - PATCH
+        - OPTIONS
+      headers:
+        - Accept
+        - Accept-Version
+        - Content-Length
+        - Content-MD5
+        - Content-Type
+        - Date
+        - Authorization
+        - X-Auth-Token
+      exposed_headers:
+        - X-Auth-Token
+      credentials: true
+      max_age: 3600
+
+
+services:
+  - name: products
+    host: microservices_products
+    port: 8001
+    protocol: http
+    routes:
+      - name: products
+        paths: ["/products"]
+
+  - name: warehouse
+    host: warehouse-upstream
+    port: 8002 
+    protocol: http
+    routes:
+      - name: warehouse
+        paths: ["/warehouse"]
+
+  - name: users
+    host: microservices_users
+    port: 8003
+    protocol: http
+    routes:
+      - name: users
+        paths: ["/users"]
+
+  - name: ecommerce
+    host: microservices_ecommerce
+    port: 8004
+    protocol: http
+    routes:
+      - name: ecommerce
+        paths: ["/ecommerce"]
+
+upstreams:
+  - name: warehouse-upstream
+    algorithm: round-robin
+    targets:
+      - target: microservices_warehouse-1:8002
+        weight: 100
+      - target: microservices_warehouse-2:8022
+        weight: 100

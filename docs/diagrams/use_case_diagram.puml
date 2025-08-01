@@ -1,0 +1,19 @@
+@startuml
+left to right direction
+actor "Gestionnaire Maison Mère" as gestionnaire 
+actor "Employé" as user
+rectangle système_Magasin {
+  usecase "UC1 - Générer un rapport consolidé des ventes" as UC1
+  usecase "UC2 - Consulter le stock central" as UC2
+  usecase "UC3 - Déclencher un réapprovisionnement sur un produit" as UC3
+  usecase "UC4 - Visualiser les performances d'un magasin" as UC4
+  usecase "UC5 - Rechercher un produit" as UC5
+  usecase "UC6 - Enregistrer une checkout (ecommerce)" as UC6
+}
+gestionnaire --> UC1
+gestionnaire --> UC2
+user --> UC3
+gestionnaire --> UC4
+user --> UC5
+user --> UC6
+@enduml

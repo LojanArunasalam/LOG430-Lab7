@@ -1,0 +1,78 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Central stock</title>
+    <style>
+        body {
+            background: #f4f6fb;
+            font-family: 'Segoe UI', Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 40px 0;
+        }
+        .container > h1 {
+            margin-bottom: 30px;
+            color: #2d3a4b;
+            font-size: 2.5rem;
+            letter-spacing: 1px;
+        }
+        table {
+            border-collapse: collapse;
+            width: 60%;
+            background: #fff;
+            box-shadow: 0 2px 12px rgba(44,62,80,0.08);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        th, td {
+            padding: 16px 18px;
+            text-align: left;
+        }
+        th {
+            background: #2d3a4b;
+            color: #fff;
+            font-weight: 600;
+            font-size: 1.1rem;
+        }
+        tr:nth-child(even) {
+            background: #f7f9fb;
+        }
+        tr:hover {
+            background: #e3eafc;
+            transition: background 0.2s;
+        }
+        td {
+            border-bottom: 1px solid #e0e6ed;
+            font-size: 1rem;
+            color: #2d3a4b;
+        }
+        td:first-child {
+            font-weight: 500;
+            color: #1a2233;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Central stock</h1>
+        <table>
+            <tr>
+                <th>Product ID</th>
+                <th>Warehouse quantity</th>
+            </tr>
+            {% for depot in depots %}
+                <tr>
+                    <td>{{depot.product}}</td>
+                    <td>{{depot.quantite_depot}}</td>
+                </tr>
+            {% endfor %}
+        </table>
+    </div>
+</body>
+</html>

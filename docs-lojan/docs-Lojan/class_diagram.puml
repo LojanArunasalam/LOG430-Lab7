@@ -1,0 +1,159 @@
+@startuml
+' Diagramme de classes simplifié pour OpenProject
+
+class User {
+  +firstname : string
+  +lastname : string
+  +mail : string
+  +login : string
+  +status : enum
+  +admin : boolean
+  +language : string
+}
+
+class Project {
+  +name : string
+  +description : text
+  +identifier : string
+  +is_public : boolean
+  +parent_id : integer
+}
+
+class WorkPackage {
+  +subject : string
+  +description : text
+  +start_date : date
+  +due_date : date
+  +estimated_hours : float
+  +done_ratio : integer
+  +parent_id : integer
+}
+
+class Type {
+  +name : string
+  +is_milestone : boolean
+  +is_default : boolean
+}
+
+class Status {
+  +name : string
+  +is_closed : boolean
+  +is_default : boolean
+}
+
+class Role {
+  +name : string
+  +assignable : boolean
+}
+
+class Member {
+  +user_id : integer
+  +project_id : integer
+}
+
+class Category {
+  +name : string
+  +project_id : integer
+}
+
+class Version {
+  +name : string
+  +project_id : integer
+  +effective_date : date
+}
+
+class Attachment {
+  +filename : string
+  +filesize : integer
+  +author_id : integer
+}
+
+class Journal {
+  +notes : text
+  +version : integer
+  +user_id : integer
+}
+
+class Comment {
+  +comments : text
+  +author_id : integer
+}
+
+class Watcher {
+  +user_id : integer
+}
+
+class Relation {
+  +relation_type : string
+  +delay : integer
+}
+
+class News {
+  +title : string
+  +description : text
+  +author_id : integer
+}
+
+class Wiki {
+  +start_page : string
+}
+
+' Relations de composition (partie intégrante - ne peut exister sans le parent)
+Project *-- WorkPackage : contient
+Project *-- Member : a_des_membres
+Project *-- Version : a_des_versions
+Project *-- Category : a_des_catégories
+Project *-- Wiki : a_un_wiki
+
+' Relations d'agrégation (peut exister indépendamment)
+Project o-- News : a_des_actualités
+Project o-- Attachment : a_des_pièces_jointes
+
+' Relations d'association avec dépendance
+WorkPackage --> Type : a_un_type
+WorkPackage --> Status : a_un_statut
+WorkPackage --> User : assigné_à
+WorkPackage --> User : responsable
+WorkPackage --> User : créé_par
+WorkPackage --> Category : a_une_catégorie
+WorkPackage --> Version : corrigé_dans
+
+' Relations de composition pour WorkPackage
+WorkPackage *-- Journal : a_des_journaux
+WorkPackage *-- Comment : a_des_commentaires
+WorkPackage *-- Watcher : surveillé_par
+WorkPackage *-- Attachment : a_des_pièces_jointes
+
+' Relations d'association entre WorkPackages
+WorkPackage --> WorkPackage : parent/enfant
+WorkPackage "1" -- "0..*" Relation : depuis
+WorkPackage "1" -- "0..*" Relation : vers
+
+' Relations utilisateurs (agrégation - l'utilisateur existe indépendamment)
+User o-- Member : membre_de_projets
+User o-- Journal : rédige_journaux
+User o-- Comment : rédige_commentaires
+User o-- Watcher : surveille
+User o-- News : rédige_actualités
+User o-- Attachment : télécharge
+
+' Relations de dépendance pour Member
+Member --> User : appartient_à
+Member --> Project : membre_de
+Member --> Role : a_le_rôle
+
+' Relations de dépendance
+Journal --> User : rédigé_par
+Attachment --> User : téléchargé_par
+Wiki --> Project : appartient_à
+Watcher --> User : appartient_à
+Version --> Project : appartient_à
+Category --> Project : appartient_à
+News --> Project : appartient_à
+News --> User : rédigé_par
+
+' Relations bidirectionnelles
+Version "1" -- "0..*" WorkPackage : corrige
+Category "1" -- "0..*" WorkPackage : catégorise
+
+@enduml

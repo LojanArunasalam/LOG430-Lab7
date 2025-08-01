@@ -1,0 +1,93 @@
+@startuml  
+top to bottom direction
+title Diagramme de déploiement - Système de vente architecture microservices
+
+node "<<device>>\nClient Device" {
+    artifact "Browser" {
+    }
+}
+
+node "<<server>>\nMain App" { 
+    artifact "Application Django" { 
+        file "controller.py"
+        file "models.py"
+        file "views.py"
+    }
+}
+
+node "Prometheus" {
+    artifact "Prometheus server" 
+}
+
+node "Grafana" { 
+    artifact "Grafana Dashboard"
+}
+
+node "<<server>>\nAPI Gateway" {
+    artifact "Kong Gateway" 
+}
+
+node "<<server>>\nUsers Service" {
+    artifact "Users Microservice API" 
+}
+
+node "<<server>>\nProducts Service" {
+    artifact "Products Microservice API"
+}
+
+node "<<server>>\nEcommerce Service" {
+    artifact "Ecommerce Microservice API" 
+}
+
+node "<<server>>\nWarehouse Service 1" {
+    artifact "Warehouse Microservice API 1" 
+}
+
+node "<<server>>\nWarehouse Service 2" {
+    artifact "Warehouse Microservice API 2" 
+}
+
+database "<<device>>\nUsers DB" {
+    artifact "PostgreSQL users"
+}
+
+database "<<device>>\nProducts DB" { 
+    artifact "PostgreSQL products"
+}
+
+database "<<device>>\nEcommerce DB" {
+    artifact "PostgreSQL ecommerce"
+}
+
+database "<<device>>\nWarehouse DB" {
+    artifact "PostgreSQL warehouse"
+}
+
+database "<<device>>\nDB server" { 
+    artifact "PostgreSQL server"
+}
+
+"Browser" --> "Kong Gateway" : HTTPS/REST API
+"Browser" --> "Application Django" : HTTP/REST API (legacy)
+
+"Grafana Dashboard" --> "Prometheus server" : metrics
+"Prometheus server" --> "Kong Gateway" : metrics
+
+"Kong Gateway" --> "Users Microservice API" : HTTP/REST
+"Kong Gateway" --> "Products Microservice API" : HTTP/REST
+"Kong Gateway" --> "Ecommerce Microservice API" : HTTP/REST
+"Kong Gateway" --> "Warehouse Microservice API 1" : HTTP/REST
+"Kong Gateway" --> "Warehouse Microservice API 2" : HTTP/REST
+
+"Users Microservice API" --> "<<device>>\nUsers DB" : ORM via SQLAlchemy
+"Products Microservice API" --> "<<device>>\nProducts DB" : ORM via SQLAlchemy
+"Ecommerce Microservice API" --> "<<device>>\nEcommerce DB" : ORM via SQLAlchemy
+"Warehouse Microservice API 1" --> "<<device>>\nWarehouse DB" : ORM via SQLAlchemy
+"Warehouse Microservice API 2" --> "<<device>>\nWarehouse DB" : ORM via SQLAlchemy
+
+"controller.py" <--> "models.py" : uses
+"models.py" --> "<<device>>\nDB server" : ORM via SQLAlchemy
+"controller.py" <--> "views.py" : uses
+"models.py" <--> "views.py" : uses
+"views.py"  --> "Kong Gateway" : HTTP/REST API
+@enduml

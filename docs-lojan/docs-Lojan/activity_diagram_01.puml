@@ -1,0 +1,60 @@
+@startuml CreateProject_ActivityDiagram
+title Diagramme d'activité - Création d'un projet dans OpenProject
+
+|Utilisateur|
+start
+:Accéder à "Nouveau projet";
+:Remplir le formulaire;
+note right
+  Nom, identifiant, description
+  visibilité, modules
+end note
+
+|Système|
+:Vérifier authentification et autorisations;
+if (Autorisé ?) then (non)
+  :Afficher erreur;
+  stop
+else (oui)
+endif
+
+|Controller|
+:Recevoir requête POST;
+:Extraire paramètres;
+
+|Service|
+:Valider les données;
+if (Validation OK ?) then (non)
+  |Utilisateur|
+  :Corriger erreurs;
+  |Controller|
+else (oui)
+endif
+
+:Créer instance Project;
+:Sauvegarder en base;
+
+if (Sauvegarde OK ?) then (non)
+  :Afficher erreur;
+  stop
+else (oui)
+endif
+
+:Configurer modules et permissions;
+
+|Background Jobs|
+fork
+  :Envoyer notifications;
+fork again
+  :Créer éléments par défaut;
+end fork
+
+|Controller|
+:Rediriger vers le projet;
+
+|Utilisateur|
+:Voir le nouveau projet;
+
+stop
+
+@enduml

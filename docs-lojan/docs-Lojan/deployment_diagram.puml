@@ -1,0 +1,60 @@
+@startuml DeploymentDiagram_OpenProject
+
+node "Client" <<device>> {
+  artifact "Web browser" <<artifact>>
+  artifact "Native client" <<artifact>>
+  artifact "SVN or Git client" <<artifact>>
+}
+
+node "Load balancer / proxy" as proxy
+
+node "Application OpenProject" {
+  node "Rails application" {
+    component "frontend"
+    component "backend"
+  }
+  artifact "Puma app server" <<server>>
+  artifact "Background worker" <<artifact>>
+
+    node "Services internes" {
+    artifact "Memcached" <<artifact>>
+    database DB_server <<device>> { 
+      artifact "PostgreSQL" <<artifact>>
+    }
+    storage "NFS" <<storage>>
+    artifact "Email gateways (eml)" <<artifact>>
+    }
+}
+
+agent "Identity provider (idp)" <<agent externe>>
+agent "Nextcloud (nex)" <<agent externe>>
+agent "GitHub (gih)" <<agent externe>>
+agent "GitLab (gil)" <<agent externe>>
+agent "Calendar (cal)" <<agent externe>>
+agent "API integrations (api)" <<agent externe>>
+agent "Outgoing webhooks" <<agent externe>>
+
+' Connections
+"Web browser" --> proxy : HTTPS requests
+"Native client" --> proxy : HTTPS requests
+"SVN or Git client" --> proxy : HTTPS requests
+
+proxy --> "Puma app server" : HTTP/HTTPS
+"Puma app server" --> "Rails application" : HTTP/HTTPS
+"Background worker" --> "PostgreSQL" : TCP/IP
+"PostgreSQL" --> "Background worker" : TCP/IP
+"Background worker" --> "Memcached" : TCP/IP
+"Background worker" --> "Email gateways (eml)" : File storage
+
+"backend" --> "NFS" : File storage
+"backend" --> "Email gateways (eml)" : SMTP/IMAP
+
+"backend" --> "Identity provider (idp)" : HTTPS
+"backend" --> "Nextcloud (nex)" : HTTPS
+"backend" --> "GitHub (gih)" : HTTPS
+"backend" --> "GitLab (gil)" : HTTPS
+"backend" --> "Calendar (cal)" : HTTPS
+"backend" --> "API integrations (api)" : HTTPS
+"backend" --> "Outgoing webhooks" : HTTPS
+
+@enduml

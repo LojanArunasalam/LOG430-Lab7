@@ -1,0 +1,57 @@
+@startuml saga_state_machine
+
+title Diagramme de la machine d'état du saga 
+
+[*] --> CREATED : Order saga initiated
+
+state CREATED {
+}
+
+state STOCK_VERIFIED {
+}
+
+state STOCK_RESERVED {
+}
+
+state PAYMENT_PROCESSED {
+}
+
+state ORDER_CONFIRMED <<final>> {
+}
+
+state COMPENSATION_STARTED <<compensation>> {
+}
+
+state CANCELLED <<error>> {
+}
+
+' Normal flow transitions
+CREATED --> STOCK_VERIFIED : Stock verification\nsucceeded
+STOCK_VERIFIED --> STOCK_RESERVED : Stock reservation\nsucceeded
+STOCK_RESERVED --> PAYMENT_PROCESSED : Payment\nprocessed
+PAYMENT_PROCESSED --> ORDER_CONFIRMED : Order\nconfirmed
+
+' Failure transitions to cancellation
+CREATED --> CANCELLED : Stock verification\nfailed
+STOCK_VERIFIED --> CANCELLED : Stock reservation\nfailed
+
+' Compensation flow
+STOCK_RESERVED --> COMPENSATION_STARTED : Payment failed /\nError occurred
+PAYMENT_PROCESSED --> COMPENSATION_STARTED : Order confirmation\nfailed / Error occurred
+COMPENSATION_STARTED --> CANCELLED : Compensation\ncompleted
+
+' Final states
+ORDER_CONFIRMED --> [*]
+CANCELLED --> [*]
+
+note right of CREATED
+  Initial state when saga is created.
+  Contains order details:
+  - customer_id
+  - product_id  
+  - store_id
+  - quantity
+  - cart_id
+end note
+
+@enduml

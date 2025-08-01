@@ -1,0 +1,120 @@
+@startuml ComponentDiagram_OpenProject
+' Component diagram showing internal software components and data flow
+top to bottom direction
+package "Presentation Layer" {
+  component [ProjectsController] as PC
+  component [WorkPackagesController] as WPC
+  component [UsersController] as UC
+  component [MembersController] as MC
+  
+  interface "HTTP Routes" as Routes
+  interface "Authentication" as Auth
+  interface "Authorization" as Authz
+}
+
+package "Business Logic Layer" {
+  component [Projects::CreateService] as PCS
+  component [Projects::UpdateService] as PUS
+  component [WorkPackages::CreateService] as WPCS
+  component [WorkPackages::UpdateService] as WPUS
+  component [Users::CreateService] as UCS
+  component [Members::CreateService] as MCS
+
+}
+
+package "Data Access Layer" {
+  component [ActiveRecord::Base] as AR
+  
+  component [DatabaseConnection] as DC
+  component [ConnectionPool] as CP
+  component [QueryCache] as QC
+  
+  interface "IDatabaseAdapter" as IDA
+  interface "IConnectionPool" as ICP
+}
+
+package "Domain Models" {
+  component [Project] as ProjectModel
+  component [WorkPackage] as WPModel
+  component [User] as UserModel
+  component [Member] as MemberModel
+  
+  interface "ActiveRecord::Base" as ARB
+}
+
+package "Background Jobs" {
+  component [JobProcessor] as JP
+  component [EmailJob] as EJ
+  component [ExportJob] as ExJ
+  component [NotificationJob] as NJ
+  
+  interface "IJobQueue" as IJQ
+}
+
+package "API Layer" {
+  component [APIController] as API
+  component [JSONSerializer] as JS
+  component [APIVersioning] as AV
+  
+  interface "REST API" as REST
+  interface "ISerializer" as IS
+}
+
+' Presentation Layer connections
+Routes --> PC : route("/projects")
+Routes --> WPC : route("/work_packages") 
+Routes --> UC : route("/users")
+Routes --> MC : route("/members")
+
+PC --> Auth : authenticate_user
+PC --> Authz : authorize_action
+PC --> PCS : create_project
+PC --> PUS : update_project
+
+WPC --> WPCS : create_work_package
+WPC --> WPUS : update_work_package
+
+' Business Logic connections  
+
+PCS --> ProjectModel : new/create
+WPCS --> WPModel : new/create
+UCS --> UserModel : new/create
+MCS --> MemberModel : new/create
+
+
+
+' Data Access Layer connections
+ProjectModel --> ARB : extends
+WPModel --> ARB : extends  
+UserModel --> ARB : extends
+MemberModel --> ARB : extends
+
+ARB --> AR : implements
+AR --> AV : includes
+
+AR --> DC : uses
+DC --> CP : uses
+DC --> QC : uses
+
+' Domain Model connections
+
+IDA --> DC : implements
+ICP --> CP : implements
+
+' Background Jobs connections
+PCS --> IJQ : enqueue_notification_job
+WPCS --> IJQ : enqueue_email_job
+IJQ --> JP : process_jobs
+JP --> EJ : execute
+JP --> ExJ : execute  
+JP --> NJ : execute
+
+' API Layer connections
+REST --> API : handle_requests
+API --> JS : serialize_response
+API --> PCS : create_project
+API --> WPCS : create_work_package
+JS --> IS : implements
+
+
+@enduml

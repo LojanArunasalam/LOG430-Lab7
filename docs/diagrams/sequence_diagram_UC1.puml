@@ -1,0 +1,42 @@
+@startuml
+skinparam style strictuml
+skinparam defaultfontname Verdana
+skinparam sequence {
+    MessageAlign center
+}
+
+title Diagramme de séquence - UC1: Générer un rapport consolidé des ventes
+
+actor gestionnaire as user
+participant "views.py" as vue
+participant "controller.py" as controller
+participant "models.py" as model
+database "database" as db
+
+user -> vue : Générer un rapport consolidé des ventes
+vue -> controller : generate_report(store_id)
+controller -> model : Sale.get_sales_by_store(store_id)
+model -> db : get_sales_by_store(store_id)
+db --> model : sales
+model --> controller: sales
+loop for sale in sales
+    controller -> model : LineSale.get_line_sales_by_sale(sale_id)
+    model -> db : get_line_sales_by_sale(sale_id)
+    db --> model : line_sales
+    model --> controller: line_sales
+    loop for line_sale in line_sales
+        alt lines_sales.quantite > max_quantite
+            controller -> model : Product.get_by_id(product_id)
+            model -> db : get_by_id(product_id)
+            db --> model : produit (most)
+            model --> controller: produit
+    end loop
+
+end loop
+
+
+
+controller --> vue : rapport consolidé (données: store_id, max_quantite, produits, most_sold_product)
+vue --> user : render("report.html", données)
+
+@enduml

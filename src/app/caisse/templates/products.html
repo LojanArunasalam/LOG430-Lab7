@@ -1,0 +1,307 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Products</title>
+    <style>
+        body {
+            background: #f4f6fb;
+            font-family: 'Segoe UI', Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 40px 0;
+        }
+        .container > h1 {
+            margin-bottom: 20px;
+            color: #2d3a4b;
+            font-size: 2rem;
+            letter-spacing: 1px;
+        }
+        .container > h1 > a {
+            color: #2d3a4b;
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+        .container > h1 > a:hover {
+            color: #3b5bdb;
+            text-decoration: underline;
+        }
+        table {
+            border-collapse: collapse;
+            width: 90%;
+            background: #fff;
+            box-shadow: 0 2px 12px rgba(44,62,80,0.08);
+            border-radius: 10px;
+            overflow: hidden;
+            margin-bottom: 40px;
+        }
+        th, td {
+            padding: 14px 16px;
+            text-align: left;
+        }
+        th {
+            background: #2d3a4b;
+            color: #fff;
+            font-weight: 600;
+            font-size: 1.05rem;
+        }
+        tr:nth-child(even) {
+            background: #f7f9fb;
+        }
+        tr:hover {
+            background: #e3eafc;
+            transition: background 0.2s;
+        }
+        td {
+            border-bottom: 1px solid #e0e6ed;
+            font-size: 1rem;
+            color: #2d3a4b;
+        }
+        td:first-child {
+            font-weight: 500;
+            color: #1a2233;
+        }
+        form button {
+            background: #3b5bdb;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            padding: 7px 16px;
+            font-size: 0.98rem;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        form button:hover {
+            background: #274bb5;
+        }
+        form {
+            margin: 0;
+        }
+        label {
+            font-weight: 500;
+            color: #2d3a4b;
+            margin-right: 8px;
+        }
+        input[type="number"] {
+            padding: 6px 10px;
+            border: 1px solid #bfc9d9;
+            border-radius: 4px;
+            font-size: 1rem;
+            margin-right: 8px;
+        }
+        /* Responsive */
+        @media (max-width: 900px) {
+            table { width: 100%; }
+            th, td { padding: 10px 6px; }
+        }
+    </style>
+</head>
+<body>
+    <form method="GET" style="text-align: center; margin-bottom: 20px;">
+        <label for="id">Search Product by ID:</label>
+        <input type="number" name="id" id="id" placeholder="Enter Product ID" required>
+        <button type="submit">Search</button>
+    </form>
+    <div class="container">
+    <h1><a href="{% url 'report' 1%}">Products Store 1</a></h1>
+    <table>
+    <tr>
+        <th>Product ID</th>
+        <th>Name</th>
+        <th>Category</th>
+        <th>Description</th>
+        <th>Price</th>
+        <th>Quantity</th>
+        <th>Restock?</th>
+        <th>Buy?</th>
+    </tr>
+    {% for product, stock in zipped1 %}
+        <tr>
+            <td>{{product.id}}</td>
+            <td>{{product.name}}</td>
+            <td>{{product.category}}</td>
+            <td>{{product.description}}</td>
+            <td>{{product.prix_unitaire}}$</td>
+            <td>{{stock.quantite}}</td>
+            <td>
+                {% if stock.quantite < 25 %}
+                    <form method="get" action="{% url 'restock_product' product.id 1 %}" style="display:inline;">
+                        <!-- <input type="hidden" name="quantity" value="10"> -->
+                        <button type="submit">Restock</button>
+                    </form>
+                {% else %}
+                    No restock needed
+                {% endif %}
+            </td>
+            <td>
+                <form method="get" action="{% url 'buy_product' product.id 1 %}" style="display:inline;">
+                    <button type="submit"> Buy </button>
+                </form>
+            </td>
+        </tr>
+    {% endfor %}
+    </table>
+
+    <h1 ><a href="{% url 'report' 2%}">Products Store 2</a></h1>
+    <table>
+    <tr>
+        <th>Product ID</th>
+        <th>Name</th>
+        <th>Category</th>
+        <th>Description</th>
+        <th>Price</th>
+        <th>Quantity</th>
+        <th>Restock?</th>
+        <th>Buy?</th>
+    </tr>
+    {% for product, stock in zipped2 %}
+        <tr>
+            <td>{{product.id}}</td>
+            <td>{{product.name}}</td>
+            <td>{{product.category}}</td>
+            <td>{{product.description}}</td>
+            <td>{{product.prix_unitaire}}$</td>
+            <td>{{stock.quantite}}</td>
+            <td>
+                {% if stock.quantite < 25 %}
+                    <form method="get" action="{% url 'restock_product' product.id 2 %}" style="display:inline;">
+                        <!-- <input type="hidden" name="quantity" value="10"> -->
+                        <button type="submit">Restock</button>
+                    </form>
+                {% else %}
+                    No restock needed
+                {% endif %}
+            </td>
+            <td>
+                <form method="get" action="{% url 'buy_product' product.id 2 %}" style="display:inline;">
+                    <button type="submit"> Buy </button>
+                </form>
+            </td>
+        </tr>
+    {% endfor %}
+    </table>
+
+    <h1><a href="{% url 'report' 3%}">Products Store 3</a></h1>
+    <table>
+    <tr>
+        <th>Product ID</th>
+        <th>Name</th>
+        <th>Category</th>
+        <th>Description</th>
+        <th>Price</th>
+        <th>Quantity</th>
+        <th>Restock?</th>
+        <th>Buy?</th>
+    </tr>
+    {% for product, stock in zipped3 %}
+        <tr>
+            <td>{{product.id}}</td>
+            <td>{{product.name}}</td>
+            <td>{{product.category}}</td>
+            <td>{{product.description}}</td>
+            <td>{{product.prix_unitaire}}$</td>
+            <td>{{stock.quantite}}</td>
+            <td>
+                {% if stock.quantite < 25 %}
+                    <form method="get" action="{% url 'restock_product' product.id 3 %}" style="display:inline;">
+                        <!-- <input type="hidden" name="quantity" value="10"> -->
+                        <button type="submit">Restock</button>
+                    </form>
+                {% else %}
+                    No restock needed
+                {% endif %}
+            </td>
+            <td>
+                <form method="get" action="{% url 'buy_product' product.id 3 %}" style="display:inline;">
+                    <button type="submit"> Buy </button>
+                </form>
+            </td>
+        </tr>
+    {% endfor %}
+    </table>
+
+    <h1><a href="{% url 'report' 4%}">Products Store 4</a></h1>
+    <table>
+    <tr>
+        <th>Product ID</th>
+        <th>Name</th>
+        <th>Category</th>
+        <th>Description</th>
+        <th>Price</th>
+        <th>Quantity</th>
+        <th>Restock?</th>
+        <th>Buy?</th>
+    </tr>
+    {% for product, stock in zipped4 %}
+        <tr>
+            <td>{{product.id}}</td>
+            <td>{{product.name}}</td>
+            <td>{{product.category}}</td>
+            <td>{{product.description}}</td>
+            <td>{{product.prix_unitaire}}$</td>
+            <td>{{stock.quantite}}</td>
+            <td>
+                {% if stock.quantite < 25 %}
+                    <form method="get" action="{% url 'restock_product' product.id 4 %}" style="display:inline;">
+                        <!-- <input type="hidden" name="quantity" value="10"> -->
+                        <button type="submit">Restock</button>
+                    </form>
+                {% else %}
+                    No restock needed
+                {% endif %}
+            </td>
+            <td>
+                <form method="get" action="{% url 'buy_product' product.id 4 %}" style="display:inline;">
+                    <button type="submit"> Buy </button>
+                </form>
+            </td>
+        </tr>
+    {% endfor %}
+    </table>
+
+    <h1 ><a href="{% url 'report' 5%}">Products Store 5</a></h1>
+    <table> 
+    <tr>
+        <th>Product ID</th>
+        <th>Name</th>
+        <th>Category</th>
+        <th>Description</th>
+        <th>Price</th>
+        <th>Quantity</th>
+        <th>Restock?</th>
+        <th>Buy?</th>
+    </tr>
+    {% for product, stock in zipped5 %}
+        <tr>
+            <td>{{product.id}}</td>
+            <td>{{product.name}}</td>
+            <td>{{product.category}}</td>
+            <td>{{product.description}}</td>
+            <td>{{product.prix_unitaire}}$</td>
+            <td>{{stock.quantite}}</td>
+            <td>
+                {% if stock.quantite < 25 %}
+                    <form method="get" action="{% url 'restock_product' product.id 5 %}" style="display:inline;">
+                        <!-- <input type="hidden" name="quantity" value="10"> -->
+                        <button type="submit">Restock</button>
+                    </form>
+                {% else %}
+                    No restock needed
+                {% endif %}
+            </td>
+            <td>
+                <form method="get" action="{% url 'buy_product' product.id 5 %}" style="display:inline;">
+                    <button type="submit"> Buy </button>
+                </form>
+            </td>
+        </tr>
+    {% endfor %}
+    </table>
+    </div>
+</body>
+</html>

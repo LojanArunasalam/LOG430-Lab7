@@ -1,0 +1,40 @@
+@startuml
+skinparam style strictuml
+skinparam defaultfontname Verdana
+skinparam sequence {
+    MessageAlign center
+}
+
+title Diagramme de séquence - UC2: Consulter le stock central et déclencher un réapprovisionnement
+
+actor employé as user
+participant "views.py" as vue
+participant "controller.py" as controller
+participant "models.py" as model
+database "database" as db
+
+user -> vue : Consulter le stock central
+vue -> model : Product_Depot.get_all_product_depots(session)
+model -> db : get_all_product_depots(session)
+db --> model : Liste des products_depots
+model --> vue : depots
+vue --> user : render("stock_central.html", depots)
+
+user -> vue : Déclencher un réapprovisionnement (cliquer "restock")
+vue -> controller : restock_from_depot(product_id, quantity, store_id)
+controller -> model : Stock.get_stock_by_product_and_store(session, product_id, store_id)
+model -> db : get_stock_by_product_and_store(session, product_id, store_id)
+db --> model : stock
+model --> controller : stock
+controller -> model : Product_Depot.get_product_depot_by_product_id(session, product_id)
+model -> db : get_product_depot_by_product_id(session, product_id)
+db --> model : product_depot
+model --> controller : product_depot
+model -> db : session.commit(stock.quantite += quantity)
+model -> db : session.commit(product_depot.quantite_depot -= quantity)
+controller --> vue : Redirection/confirmation
+vue --> user : redirect("products.html")
+
+
+
+@enduml

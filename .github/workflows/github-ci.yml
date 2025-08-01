@@ -1,0 +1,60 @@
+
+# Tiree de: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-python
+
+name: Python application
+
+#On what actions do you want your workflow to trigger
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Pull postgres
+      run: |
+        docker pull postgres:16
+        docker run --name postgres -e POSTGRES_USER=admin -e POSTGRES_PASSWORD=admin -e POSTGRES_DB=postgres -e POSTGRES_HOST_AUTH_METHOD=trust -p 5432:5432 -v ./init.sql:/docker-entrypoint-initdb.d/init.sql -d postgres:16
+    - name: Set up Python 3.12
+      uses: actions/setup-python@v3
+      with:
+        python-version: "3.12"
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install flake8 pytest
+        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+    - name: Lint with flake8
+      run: |
+        # stop the build if there are Python syntax errors or undefined names
+        flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+        # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
+        flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+    - name: Test with pytest
+      env: 
+        DATABASE_URL: postgresql+psycopg2://admin:admin@localhost:5432/postgres
+      run: |
+        pytest src/app/caisse/tests.py
+    - name: API tests
+      env: 
+        DATABASE_URL: postgresql+psycopg2://admin:admin@localhost:5432/postgres
+      run: |
+        cd src/app
+        python manage.py test
+    - name: Build Docker Image
+      run: |
+        docker build -t lojanarun/lab3:latest . 
+    - name: Publish to Docker Hub
+      run: |
+        docker login -u lojanarun -p ${{ secrets.DOCKER_HUB_TOKEN}}
+        docker push lojanarun/lab5:latest

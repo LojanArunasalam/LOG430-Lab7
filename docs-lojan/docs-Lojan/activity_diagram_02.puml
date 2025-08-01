@@ -1,0 +1,86 @@
+@startuml ViewWorkPackage_ActivityDiagram
+title Diagramme d'activité - Consulter un work package dans OpenProject
+
+|Utilisateur|
+start
+:Accéder à la liste des work packages;
+:Sélectionner un work package;
+
+|Système|
+:Vérifier authentification;
+if (Autorisé ?) then (non)
+  :Rediriger vers connexion;
+  stop
+else (oui)
+endif
+
+|Controller|
+:Recevoir requête GET /work_packages/:id;
+:Récupérer l'ID du work package;
+
+|Service|
+:Charger le work package depuis la base;
+if (Work package existe ?) then (non)
+  :Afficher erreur 404;
+  stop
+else (oui)
+endif
+
+:Vérifier permissions de lecture;
+if (Permission accordée ?) then (non)
+  :Afficher erreur 403;
+  stop
+else (oui)
+endif
+
+:Charger les données associées;
+note right
+  Projet, assigné, statut, type
+  commentaires, journaux
+  pièces jointes, relations
+end note
+
+|Background|
+fork
+  :Enregistrer l'accès dans les logs;
+fork again
+  :Mettre à jour "dernière vue";
+end fork
+
+|Controller|
+:Préparer les données pour la vue;
+:Rendre la page work package;
+
+|Utilisateur|
+:Voir les détails du work package;
+note right
+  Informations principales
+  Historique des modifications
+  Commentaires et pièces jointes
+  Relations avec d'autres WP
+end note
+
+if (Modifier le work package ?) then (oui)
+  :Cliquer sur "Modifier";
+  :Formulaire d'édition;
+  note left: Autre diagramme d'activité
+else (non)
+endif
+
+if (Ajouter un commentaire ?) then (oui)
+  :Écrire commentaire;
+  :Sauvegarder commentaire;
+else (non)
+endif
+
+if (Télécharger pièce jointe ?) then (oui)
+  :Cliquer sur fichier;
+  :Télécharger le fichier;
+else (non)
+endif
+
+:Fermer ou naviguer ailleurs;
+
+stop
+
+@enduml

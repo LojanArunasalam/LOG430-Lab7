@@ -1,0 +1,100 @@
+@startuml ViewProject_ActivityDiagram
+title Diagramme d'activité - Consulter un projet dans OpenProject
+
+|Utilisateur|
+start
+:Accéder à la liste des projets;
+:Sélectionner un projet;
+
+|Système|
+:Vérifier authentification;
+if (Autorisé ?) then (non)
+  :Rediriger vers connexion;
+  stop
+else (oui)
+endif
+
+|Controller|
+:Recevoir requête GET /projects/:id;
+:Récupérer l'ID du projet;
+
+|Service|
+:Charger le projet depuis la base;
+if (Projet existe ?) then (non)
+  :Afficher erreur 404;
+  stop
+else (oui)
+endif
+
+:Vérifier permissions d'accès;
+if (Permission accordée ?) then (non)
+  :Afficher erreur 403;
+  stop
+else (oui)
+endif
+
+:Charger les données du projet;
+note right
+  Informations principales
+  Membres et rôles
+  Modules activés
+  Statistiques
+end note
+
+|Background|
+fork
+  :Charger work packages récents;
+fork again
+  :Charger activités récentes;
+fork again
+  :Calculer statistiques du projet;
+end fork
+
+|Controller|
+:Préparer la vue d'ensemble;
+:Rendre la page projet;
+
+|Utilisateur|
+:Voir le tableau de bord du projet;
+note right
+  Aperçu général
+  Work packages
+  Activités
+  Membres
+  Modules disponibles
+end note
+
+if (Consulter work packages ?) then (oui)
+  :Aller à la liste des WP;
+  note left: Autre diagramme
+else (non)
+endif
+
+if (Voir l'activité ?) then (oui)
+  :Consulter le flux d'activité;
+else (non)
+endif
+
+if (Accéder aux modules ?) then (oui)
+  :Sélectionner module;
+  note right
+    Wiki, Calendrier, Actualités
+    Gantt, Tableau Kanban, etc.
+  end note
+else (non)
+endif
+
+if (Administrer le projet ?) then (oui)
+  if (Droits admin ?) then (oui)
+    :Accéder aux paramètres;
+  else (non)
+    :Afficher erreur permission;
+  endif
+else (non)
+endif
+
+:Naviguer ailleurs ou fermer;
+
+stop
+
+@enduml

@@ -1,0 +1,270 @@
+services: 
+  django-client: 
+    container_name: client
+    build: . 
+    depends_on:
+      - db
+    ports:
+        - "8888:8888"
+    environment:
+        - DATABASE_URL=postgresql://admin:admin@db:5432/postgres
+        - DJANGO_SETTINGS_MODULE=client.settings
+    expose: 
+        - "8888"
+
+  db:
+    image: postgres:16
+    container_name: db
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin
+      POSTGRES_DB: postgres
+    ports:
+      - "5432:5432"
+    volumes: 
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql  
+    expose: 
+      - "5432"
+
+  microservices_products:
+    build: ./microservices/products
+    container_name: microservices_products
+    ports:
+      - "8001:8001"
+    volumes:
+      - ./microservices/products:/app
+    environment:
+      - DATABASE_URL_PRODUCTS=postgresql://admin:admin@db_products:5432/postgres
+    depends_on:
+      - db_products
+    expose:
+      - "8001"
+    networks:
+      - api_network
+  
+  db_products:
+    image: postgres:16
+    container_name: db_products
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin
+      POSTGRES_DB: postgres
+    ports:
+      - "5433:5432"
+    expose: 
+      - "5432"
+    volumes: 
+      - ./microservices/products/init_products.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - api_network
+    
+  microservices_warehouse-1:
+    build: ./microservices/warehouse
+    depends_on:
+      - db_warehouse
+    ports:
+      - "8002:8002"
+    volumes:
+      - ./microservices/warehouse:/app
+    environment:
+      - DATABASE_URL_WAREHOUSE=postgresql://admin:admin@db_warehouse:5432/postgres
+    expose: 
+      - "8002"
+    networks:
+      - api_network 
+  
+  microservices_warehouse-2:
+    build: ./microservices/warehouse
+    depends_on:
+      - db_warehouse
+    ports:
+      - "8022:8002"
+    volumes:
+      - ./microservices/warehouse:/app
+    environment:
+      - DATABASE_URL_WAREHOUSE=postgresql://admin:admin@db_warehouse:5432/postgres
+    expose: 
+      - "8022"
+    networks:
+      - api_network 
+    
+
+  db_warehouse:
+    image: postgres:16
+    container_name: db_warehouse
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin
+      POSTGRES_DB: postgres
+    ports:
+      - "5434:5432"
+    expose: 
+      - "5432"
+    volumes: 
+      - ./microservices/warehouse/init_warehouse.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - api_network
+  
+  microservices_users:
+    build: ./microservices/users
+    container_name: microservices_users
+    ports:
+      - "8003:8003" 
+    volumes:
+      - ./microservices/users:/app
+    environment:
+      - DATABASE_URL_CUSTOMERS=postgresql://admin:admin@db_users:5432/postgres
+    depends_on:
+      - db_users
+    expose:
+      - "8003"
+    networks:
+      - api_network
+
+  db_users:
+    image: postgres:16
+    container_name: db_users
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin
+      POSTGRES_DB: postgres
+    ports:
+      - "5435:5432"
+    expose: 
+      - "5432"
+    volumes: 
+      - ./microservices/users/init_users.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - api_network
+
+  microservices_ecommerce:
+    build: ./microservices/ecommerce
+    container_name: microservices_ecommerce
+    ports:
+      - "8004:8004" 
+    volumes:
+      - ./microservices/ecommerce:/app
+    environment:
+      - DATABASE_URL_ECOMMERCE=postgresql://admin:admin@db_ecommerce:5432/postgres
+    depends_on:
+      - db_ecommerce
+    expose:
+      - "8004"
+    networks:
+      - api_network
+
+  db_ecommerce:
+    image: postgres:16
+    container_name: db_ecommerce
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin
+      POSTGRES_DB: postgres
+    ports:
+      - "5436:5432"
+    expose: 
+      - "5432"
+    volumes: 
+      - ./microservices/ecommerce/init_ecommerce.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - api_network
+
+  saga_orchestrator:
+    build: ./microservices/saga-orchestrator
+    ports:
+      - "8005:8005"
+    volumes:
+      - ./microservices/saga-orchestrator:/app
+    environment:
+      - DATABASE_URL_SAGA=postgresql://admin:admin@db_saga:5432/postgres
+    depends_on:
+      - db_saga
+    expose:
+      - "8005"
+    networks:
+      - api_network
+
+  db_saga:
+    image: postgres:16
+    container_name: db_saga
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin
+      POSTGRES_DB: postgres
+    ports:
+      - "5437:5432"
+    expose: 
+      - "5432"
+    volumes: 
+      - ./microservices/saga-orchestrator/init_saga.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - api_network
+
+
+  kong-api_gateway: 
+    image: kong:latest
+    container_name: kong-api_gateway
+    ports:
+      - "8000:8000"
+      - "8443:8443"
+      - "8008:8008"
+      - "8444:8444"
+    volumes:
+      - ./kong/kong.yml:/usr/local/kong/declarative/kong.yml
+    environment:
+      KONG_DATABASE: off
+      KONG_DECLARATIVE_CONFIG: /usr/local/kong/declarative/kong.yml
+      KONG_PROXY_ACCESS_LOG: /dev/stdout
+      KONG_ADMIN_ACCESS_LOG: /dev/stdout
+      KONG_PROXY_ERROR_LOG: /dev/stderr
+      KONG_ADMIN_ERROR_LOG: /dev/stderr
+    expose: 
+      - "8000"
+      - "8443"
+      - "8008"
+      - "8444"
+    networks:
+      - api_network
+
+  node_exporter:
+    image: quay.io/prometheus/node-exporter:latest
+    container_name: node_exporter
+    command:
+      - '--path.rootfs=/host'
+    ports:
+      - '9100:9100'
+    pid: host
+    restart: unless-stopped
+    volumes:
+      - '/:/host:ro'
+    networks:
+      - api_network
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    restart: unless-stopped
+    ports:
+      - '3000:3000'
+    networks: 
+      - api_network
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    volumes: 
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+    ports:
+      - "9090:9090"
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--web.listen-address=:9090'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+    restart: unless-stopped
+    networks:
+      - api_network
+
+networks:
+  api_network:
+    driver: bridge

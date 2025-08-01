@@ -1,0 +1,86 @@
+@startuml
+
+title Diagramme de classes - Système de magasin
+
+class Produit {
+  id: int
+  nom: string
+  categorie: string
+  description: string
+  prix_unitaire: float
+}
+
+class Vente {
+  id: int
+  total: float
+}
+
+class LigneVente {
+  id: int
+  quantite: int
+  prix: float
+}
+
+class Utilisateur {
+  id: int
+  nom: string
+}
+
+class Stock { 
+  id: int 
+  quantite: int
+  produit_id: int
+  magasin_id: int
+}
+
+class Magasin { 
+  id: int
+  nom: string
+}
+
+class Produit_Depot { 
+  id: int
+  quantite_depot: int
+  produit_id: int
+}
+
+class Cart {
+  id: int
+  user: int 
+  total: float
+  store: int
+}
+
+class ItemCart {
+  id: int
+  quantite: int
+  prix: float
+  cart: int
+  product: int
+}
+
+class Checkout { 
+  id: int
+  cart_id: int
+  current_status: string
+}
+
+
+' Relations entre classes
+LigneVente "*" --> "1" Produit: est associée à
+LigneVente "*" --* "1" Vente: fait partie de
+Stock "*" --> "1" Produit: contient
+Stock "*" --> "1" Magasin: appartient à
+Vente "*" --> "1" Magasin: réalisée dans
+Utilisateur "1" --> "*" Vente: effectue
+Produit_Depot "*" --> "1" Produit: est associé à
+
+' Relations pour les nouvelles classes
+Cart "*" --> "1" Utilisateur: appartient à
+Cart "*" --> "1" Magasin: associé à
+ItemCart "*" --* "1" Cart: fait partie de
+ItemCart "*" --> "1" Produit: contient
+Checkout "1" --> "1" Cart: finalise
+Checkout "*" --> "1" Utilisateur: initié par
+
+@enduml
