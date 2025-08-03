@@ -1,6 +1,8 @@
 # Rapport Lab 7 - Architecture Événementielle
 ## LOG430 - Architecture Logicielle
 
+# Il est à noter que le code ne fonctionne pas, mais le principe est là
+
 ## 1. Scénario Métier Retenu
 
 ### 1.1 Contexte E-commerce
@@ -116,6 +118,11 @@ Il est à noter qu'une saga choréographée n'a pas été implémentée car il e
   }
 }
 ```
+### 4.1.2 Pub/Sub souscription
+
+![alt text](docs/images/terminalSubscription2.png) 
+
+![alt text](docs/images/terminalSubscription.png)
 
 ### 4.2 Séquence d'Événements : Workflow Complet
 
@@ -318,7 +325,7 @@ curl "http://localhost:8000/event-store/api/v1/replay/aggregate/orders/123"
 
 ## 5. Conclusion avec Recommandations
 
-En conclusion, une architecture evenementielle a été implementée afin de 
+En conclusion, une architecture evenementielle a été implementée afin que les services puissent communiquer via des événements, rendant l'ensemble de système moins couplé.
 
 Voici des recommandations pour améliorer le système dans un futur proche:
 - Ajouter du monitoring sur les evenements afin de mieux comprendre leur impact
