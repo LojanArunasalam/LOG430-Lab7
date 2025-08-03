@@ -1,0 +1,69 @@
+@startuml deployment_diagram_event_driven
+!theme plain
+title Diagramme de Déploiement - Architecture Événementielle Lab 7
+
+package "Docker Environment" {
+  
+  ' API Gateway
+  component "Kong Gateway" as kong {
+    port "8000" as kong_port
+  }
+
+  ' Core Microservices
+  package "Microservices" {
+    component "Ecommerce" as ecommerce
+    component "Warehouse" as warehouse  
+    component "Users" as users
+    component "Products" as products
+    component "Payment" as payment
+    component "Saga Orchestrator" as saga
+  }
+  
+  ' CQRS Services
+  package "CQRS" {
+    component "Command Service" as cqrs_cmd
+    component "Query Service" as cqrs_query
+    component "Projector" as projector
+  }
+
+  ' Message Broker
+  component "RabbitMQ" as rabbitmq {
+    port "5672" as rabbitmq_port
+  }
+
+  ' Databases
+  package "Databases" {
+    database "PostgreSQL\n(Business Data)" as postgres
+    database "MongoDB\n(Events & Read Models)" as mongodb
+  }
+
+}
+
+' Connexions principales
+kong --> ecommerce
+kong --> warehouse
+kong --> users
+kong --> products
+kong --> payment
+kong --> cqrs_cmd
+kong --> cqrs_query
+
+' Communication via RabbitMQ
+ecommerce --> rabbitmq : Events
+warehouse --> rabbitmq : Events
+payment --> rabbitmq : Events
+saga --> rabbitmq : Orchestration
+cqrs_cmd --> rabbitmq : Commands
+projector --> rabbitmq : Subscribe
+
+' Connexions bases de données
+ecommerce --> postgres
+warehouse --> postgres
+users --> postgres
+products --> postgres
+saga --> postgres
+
+cqrs_query --> mongodb
+projector --> mongodb
+
+@enduml

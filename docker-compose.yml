@@ -62,10 +62,12 @@ services:
     build: ./microservices/warehouse
     depends_on:
       - db_warehouse
+      - rabbitmq
     ports:
       - "8002:8002"
     volumes:
       - ./microservices/warehouse:/app
+      - ./microservices/shared:/app/../shared
     environment:
       - DATABASE_URL_WAREHOUSE=postgresql://admin:admin@db_warehouse:5432/postgres
     expose: 
@@ -77,10 +79,12 @@ services:
     build: ./microservices/warehouse
     depends_on:
       - db_warehouse
+      - rabbitmq
     ports:
       - "8022:8002"
     volumes:
       - ./microservices/warehouse:/app
+      - ./microservices/shared:/app/../shared
     environment:
       - DATABASE_URL_WAREHOUSE=postgresql://admin:admin@db_warehouse:5432/postgres
     expose: 
@@ -144,10 +148,12 @@ services:
       - "8004:8004" 
     volumes:
       - ./microservices/ecommerce:/app
+      - ./microservices/shared:/app/../shared
     environment:
       - DATABASE_URL_ECOMMERCE=postgresql://admin:admin@db_ecommerce:5432/postgres
     depends_on:
       - db_ecommerce
+      - rabbitmq
     expose:
       - "8004"
     networks:
@@ -181,6 +187,71 @@ services:
       - db_saga
     expose:
       - "8005"
+    networks:
+      - api_network
+
+  microservices_payment:
+    build: ./microservices/payment
+    container_name: microservices_payment
+    ports:
+      - "8006:8005"
+    volumes:
+      - ./microservices/payment:/app
+      - ./microservices/shared:/app/../shared
+    depends_on:
+      - rabbitmq
+    expose:
+      - "8005"
+    networks:
+      - api_network
+
+  microservices_notification:
+    build: ./microservices/notification
+    container_name: microservices_notification
+    ports:
+      - "8007:8007"
+    volumes:
+      - ./microservices/notification:/app
+      - ./microservices/shared:/app/../shared
+    depends_on:
+      - rabbitmq
+    expose:
+      - "8007"
+    networks:
+      - api_network
+
+  microservices_event_store:
+    build: 
+      context: ./microservices/event-store
+      dockerfile: Dockerfile_mongo
+    container_name: microservices_event_store
+    ports:
+      - "8008:8008"
+    volumes:
+      - ./microservices/shared:/app/shared
+    environment:
+      - MONGODB_URL=mongodb://admin:admin@mongodb_event_store:27017/event_store?authSource=admin
+    depends_on:
+      - mongodb_event_store
+      - rabbitmq
+    expose:
+      - "8008"
+    networks:
+      - api_network
+
+  mongodb_event_store:
+    image: mongo:6.0
+    container_name: mongodb_event_store
+    ports:
+      - "27017:27017"
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=admin
+      - MONGO_INITDB_ROOT_PASSWORD=admin
+      - MONGO_INITDB_DATABASE=event_store
+    volumes:
+      - mongodb_event_data:/data/db
+    expose:
+      - "27017"
     networks:
       - api_network
 
@@ -264,7 +335,91 @@ services:
     restart: unless-stopped
     networks:
       - api_network
+    
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: admin
+      RABBITMQ_DEFAULT_PASS: admin
+    networks:
+      - api_network
+
+  # CQRS Services
+  cqrs_command:
+    build: ./microservices/cqrs
+    container_name: cqrs_command
+    ports:
+      - "8010:8000"
+    volumes:
+      - ./microservices/shared:/app/shared
+    environment:
+      - RABBITMQ_URL=amqp://admin:admin@rabbitmq:5672/
+      - MONGODB_URL=mongodb://admin:admin@mongodb_cqrs:27017/cqrs_read_db?authSource=admin
+    depends_on:
+      - rabbitmq
+      - mongodb_cqrs
+    command: ["python", "-m", "uvicorn", "command_app:app", "--host", "0.0.0.0", "--port", "8040"]
+    expose:
+      - "8040"
+    networks:
+      - api_network
+
+  cqrs_query:
+    build: ./microservices/cqrs
+    container_name: cqrs_query
+    ports:
+      - "8011:8001"
+    volumes:
+      - ./microservices/shared:/app/shared
+    environment:
+      - MONGODB_URL=mongodb://admin:admin@mongodb_cqrs:27017/cqrs_read_db?authSource=admin
+    depends_on:
+      - mongodb_cqrs
+    command: ["python", "-m", "uvicorn", "query_app:app", "--host", "0.0.0.0", "--port", "8041"]
+    expose:
+      - "8041"
+    networks:
+      - api_network
+
+  cqrs_projector:
+    build: ./microservices/cqrs
+    container_name: cqrs_projector
+    volumes:
+      - ./microservices/shared:/app/shared
+    environment:
+      - RABBITMQ_URL=amqp://admin:admin@rabbitmq:5672/
+      - MONGODB_URL=mongodb://admin:admin@mongodb_cqrs:27017/cqrs_read_db?authSource=admin
+    depends_on:
+      - rabbitmq
+      - mongodb_cqrs
+    command: ["python", "projection_app.py"]
+    networks:
+      - api_network
+
+  mongodb_cqrs:
+    image: mongo:6.0
+    container_name: mongodb_cqrs
+    ports:
+      - "27018:27017"
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=admin
+      - MONGO_INITDB_ROOT_PASSWORD=admin
+      - MONGO_INITDB_DATABASE=cqrs_read_db
+    volumes:
+      - mongodb_cqrs_data:/data/db
+    expose:
+      - "27017"
+    networks:
+      - api_network
 
 networks:
   api_network:
     driver: bridge
+
+volumes:
+  mongodb_event_data:
+  mongodb_cqrs_data:

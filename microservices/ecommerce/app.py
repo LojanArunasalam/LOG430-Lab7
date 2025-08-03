@@ -8,9 +8,24 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from typing import List, Optional
 import os
+import sys
+import logging
 from dotenv import load_dotenv
 
+# Add shared directory to path
+sys.path.append('/app/../shared')
+from events import (
+    EventPublisher, 
+    OrderEvents, 
+    AggregateTypes,
+    create_order_initiated_data
+)
+
 load_dotenv()
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 app = FastAPI(title="Ecommerce API")
 
@@ -18,6 +33,21 @@ app = FastAPI(title="Ecommerce API")
 DATABASE_URL_ECOMMERCE = os.getenv("DATABASE_URL_ECOMMERCE")
 engine = create_engine(DATABASE_URL_ECOMMERCE)
 Session = sessionmaker(bind=engine)
+
+# Event publisher (initialized once)
+event_publisher = None
+
+def get_event_publisher():
+    """Get or create event publisher instance"""
+    global event_publisher
+    if event_publisher is None:
+        try:
+            event_publisher = EventPublisher()
+            logger.info("Event publisher initialized")
+        except Exception as e:
+            logger.error(f"Failed to initialize event publisher: {e}")
+            event_publisher = None
+    return event_publisher
 
 # Pydantic Models for Request/Response
 class CartSerializer(BaseModel):
@@ -147,6 +177,47 @@ def initiate_checkout(checkout_data: CheckoutCreateSerializer):
     checkout = checkout_service.initiate_checkout(
         checkout_data.cart_id
     )
+    
+    # Publish OrderInitiated event
+    publisher = get_event_publisher()
+    if publisher:
+        try:
+            # Get cart items for the event
+            cart_service = CartService(session)
+            cart_data = cart_service.get_cart_with_items(checkout_data.cart_id)
+            
+            items_data = []
+            if cart_data and 'items' in cart_data:
+                for item in cart_data['items']:
+                    items_data.append({
+                        "product_id": item.get('product', 0),
+                        "quantity": item.get('quantite', 0),
+                        "unit_price": 25.99,  # Default price - you'd get this from products service
+                        "total_price": item.get('quantite', 0) * 25.99
+                    })
+            
+            event_data = create_order_initiated_data(
+                order_id=checkout.id,
+                customer_id=checkout.customer_id,
+                cart_id=checkout_data.cart_id,
+                total_amount=float(checkout.total),
+                items=items_data
+            )
+            
+            publisher.publish_event(
+                event_type=OrderEvents.ORDER_INITIATED,
+                aggregate_type=AggregateTypes.ORDER,
+                aggregate_id=str(checkout.id),
+                data=event_data,
+                service_name="ecommerce"
+            )
+            
+            logger.info(f"Published OrderInitiated event for checkout {checkout.id}")
+            
+        except Exception as e:
+            logger.error(f"Failed to publish OrderInitiated event: {e}")
+            # Don't fail the checkout if event publishing fails
+    
     return checkout
 
 @app.post("/api/v1/checkout/{checkout_id}/complete", response_model=CheckoutSerializer)
@@ -155,6 +226,32 @@ def complete_checkout(checkout_id: int):
     checkout_service = CheckoutService(session)
     
     completed_checkout = checkout_service.complete_checkout(checkout_id)
+    
+    # Publish OrderCreated event
+    publisher = get_event_publisher()
+    if publisher:
+        try:
+            event_data = {
+                "order_id": checkout_id,
+                "customer_id": completed_checkout.customer_id,
+                "total_amount": float(completed_checkout.total),
+                "status": "CREATED",
+                "completed_at": completed_checkout.created_at.isoformat() if completed_checkout.created_at else None
+            }
+            
+            publisher.publish_event(
+                event_type=OrderEvents.ORDER_CREATED,
+                aggregate_type=AggregateTypes.ORDER,
+                aggregate_id=str(checkout_id),
+                data=event_data,
+                service_name="ecommerce"
+            )
+            
+            logger.info(f"Published OrderCreated event for order {checkout_id}")
+            
+        except Exception as e:
+            logger.error(f"Failed to publish OrderCreated event: {e}")
+    
     return completed_checkout
 
 @app.get("/api/v1/checkout/{checkout_id}", response_model=CheckoutSerializer)

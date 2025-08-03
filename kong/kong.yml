@@ -61,6 +61,46 @@ services:
       - name: ecommerce
         paths: ["/ecommerce"]
 
+  - name: payment
+    host: microservices_payment
+    port: 8005
+    protocol: http
+    routes:
+      - name: payment
+        paths: ["/payment"]
+
+  - name: notification
+    host: microservices_notification
+    port: 8007
+    protocol: http
+    routes:
+      - name: notification
+        paths: ["/notification"]
+
+  - name: event-store
+    host: microservices_event_store
+    port: 8008
+    protocol: http
+    routes:
+      - name: event-store
+        paths: ["/event-store"]
+
+  - name: cqrs-command
+    host: cqrs_command
+    port: 8000
+    protocol: http
+    routes:
+      - name: cqrs-command
+        paths: ["/cqrs/commands"]
+
+  - name: cqrs-query
+    host: cqrs_query
+    port: 8001
+    protocol: http
+    routes:
+      - name: cqrs-query
+        paths: ["/cqrs/queries"]
+
 upstreams:
   - name: warehouse-upstream
     algorithm: round-robin

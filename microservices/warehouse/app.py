@@ -7,13 +7,48 @@ from pydantic import BaseModel
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from typing import List, Optional
+import sys
+import threading
+import time
 
 import requests 
 import logging
 
+# Add shared directory to path
+sys.path.append('/app/../shared')
+from events import (
+    EventPublisher, 
+    EventSubscriber,
+    InventoryEvents, 
+    AggregateTypes,
+    Exchanges,
+    RoutingKeys,
+    create_stock_reserved_data
+)
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
 app = FastAPI(title="Warehouse Management Service")
 engine = create_engine("postgresql+psycopg2://admin:admin@db_warehouse:5432/postgres")
 Session = sessionmaker(bind=engine)
+
+# Event infrastructure
+event_publisher = None
+event_subscriber = None
+
+def get_event_publisher():
+    """Get or create event publisher instance"""
+    global event_publisher
+    if event_publisher is None:
+        try:
+            event_publisher = EventPublisher()
+            logger.info("Warehouse event publisher initialized")
+        except Exception as e:
+            logger.error(f"Failed to initialize event publisher: {e}")
+            event_publisher = None
+    return event_publisher
 
 class StoreSerializer(BaseModel):
     id: int
@@ -383,3 +418,150 @@ def publish_event(event_type: str, saga_id: int, data: dict, success: bool = Tru
 #         raise HTTPException(status_code=400, detail=str(e))
 #     finally:
 #         session.close()
+
+# Event Handlers
+def handle_order_initiated(event_data: dict):
+    """Handle OrderInitiated event - check and reserve stock"""
+    try:
+        order_data = event_data["data"]
+        order_id = order_data["order_id"]
+        items = order_data.get("items", [])
+        correlation_id = event_data["metadata"]["correlation_id"]
+        
+        logger.info(f"Processing OrderInitiated for order {order_id}")
+        
+        session = Session()
+        stock_service = StockService(session)
+        publisher = get_event_publisher()
+        
+        if not publisher:
+            logger.error("Event publisher not available")
+            return
+        
+        try:
+            # Check stock availability for all items
+            all_items_available = True
+            stock_items = []
+            
+            for item in items:
+                product_id = item.get("product_id")
+                quantity = item.get("quantity")
+                
+                if not product_id or not quantity:
+                    continue
+                
+                # Check if we have stock (simplified - assuming store_id = 1)
+                stock = stock_service.get_stock_by_product_store(product_id, 1)
+                
+                if stock and stock.quantite >= quantity:
+                    stock_items.append({
+                        "product_id": product_id,
+                        "requested_quantity": quantity,
+                        "available_quantity": stock.quantite,
+                        "status": "AVAILABLE"
+                    })
+                else:
+                    all_items_available = False
+                    stock_items.append({
+                        "product_id": product_id,
+                        "requested_quantity": quantity,
+                        "available_quantity": stock.quantite if stock else 0,
+                        "status": "UNAVAILABLE"
+                    })
+            
+            if all_items_available:
+                # Reserve stock for all items
+                reservation_id = f"res_{order_id}_{int(time.time())}"
+                
+                for item in items:
+                    product_id = item.get("product_id")
+                    quantity = item.get("quantity")
+                    
+                    if product_id and quantity:
+                        # Reduce stock (simplified reservation)
+                        stock_service.reduce_stock(product_id, 1, quantity)
+                
+                # Publish StockReserved event
+                stock_data = create_stock_reserved_data(
+                    order_id=order_id,
+                    store_id=1,
+                    items=stock_items,
+                    reservation_id=reservation_id
+                )
+                
+                publisher.publish_event(
+                    event_type=InventoryEvents.STOCK_RESERVED,
+                    aggregate_type=AggregateTypes.INVENTORY,
+                    aggregate_id=f"order_{order_id}",
+                    data=stock_data,
+                    correlation_id=correlation_id,
+                    service_name="warehouse"
+                )
+                
+                logger.info(f"Stock reserved for order {order_id}")
+                
+            else:
+                # Publish StockUnavailable event
+                publisher.publish_event(
+                    event_type=InventoryEvents.STOCK_UNAVAILABLE,
+                    aggregate_type=AggregateTypes.INVENTORY,
+                    aggregate_id=f"order_{order_id}",
+                    data={
+                        "order_id": order_id,
+                        "status": "UNAVAILABLE",
+                        "items": stock_items,
+                        "reason": "insufficient_stock"
+                    },
+                    correlation_id=correlation_id,
+                    service_name="warehouse"
+                )
+                
+                logger.info(f"Stock unavailable for order {order_id}")
+                
+        finally:
+            session.close()
+            
+    except Exception as e:
+        logger.error(f"Error handling OrderInitiated event: {e}")
+
+def start_event_consumer():
+    """Start the event consumer in a background thread"""
+    global event_subscriber
+    
+    def consumer_loop():
+        max_retries = 5
+        retry_count = 0
+        
+        while retry_count < max_retries:
+            try:
+                event_subscriber = EventSubscriber("warehouse_service")
+                
+                # Subscribe to OrderInitiated events
+                event_subscriber.subscribe_to_event(
+                    exchange=Exchanges.ORDERS,
+                    routing_key=RoutingKeys.ORDER_INITIATED,
+                    handler=handle_order_initiated
+                )
+                
+                logger.info("Warehouse event consumer subscribed to events")
+                event_subscriber.start_consuming()
+                break
+                
+            except Exception as e:
+                retry_count += 1
+                logger.error(f"Event consumer failed (attempt {retry_count}): {e}")
+                if retry_count < max_retries:
+                    time.sleep(5)  # Wait before retry
+                else:
+                    logger.error("Max retries reached. Event consumer will not start.")
+    
+    consumer_thread = threading.Thread(target=consumer_loop)
+    consumer_thread.daemon = True
+    consumer_thread.start()
+    logger.info("Warehouse event consumer thread started")
+
+# Initialize event consumer on startup
+@app.on_event("startup")
+async def startup_event():
+    """Initialize event consumer when the app starts"""
+    start_event_consumer()
